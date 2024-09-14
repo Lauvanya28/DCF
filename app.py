@@ -8,3 +8,9 @@ def create_app():
     app.register_blueprint(webhook_bp)
 
     return app
+
+# Add this block to expose the app object directly
+app = create_app()
+
+if __name__ == '__main__':
+    app.run()
