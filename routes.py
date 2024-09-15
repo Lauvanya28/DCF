@@ -33,6 +33,7 @@ def webhook():
 
     # Extract the response from ChatGPT
     chatgpt_response = response['choices'][0]['message']['content']
+    print(f"Response from OpenAI: {chatgpt_response}")  # Log the response
 
     # Send the response back to Dialogflow
     return jsonify({
