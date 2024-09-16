@@ -2,8 +2,8 @@ services:
   - type: web
     name: dialogflow-chatgpt-flask
     env: python
-    buildCommand: ""
+    buildCommand: ""  # Leave empty if no custom build steps are needed
     startCommand: gunicorn app:app
     envVars:
       - key: OPENAI_API_KEY
-        sync: false
+        sync: false  # Ensure this is set correctly in Render's environment settings
