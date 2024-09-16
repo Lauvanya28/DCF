@@ -2,52 +2,48 @@ from flask import Flask, request, jsonify
 import openai
 import os
 
-# Initialize Flask app
+# Initialize the Flask app
 app = Flask(__name__)
 
 # Load OpenAI API key from environment variable
-openai.api_key = os.getenv('OPENAI_API_KEY')  # Ensure it's set in Render's environment
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
-# Define the webhook route
+# Route to handle the root ("/") and return a simple message
+@app.route('/')
+def index():
+    return "Flask app is running!"
+
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    req = request.get_json(silent=True, force=True)
-    
-    if not req or 'queryResult' not in req or 'queryText' not in req['queryResult']:
-        return jsonify({"fulfillmentText": "Invalid request from Dialogflow"}), 400
-
-    user_message = req['queryResult']['queryText']
-
     try:
-        # Attempt to use GPT-4
+        # Parse the incoming request from Dialogflow
+        req = request.get_json(silent=True, force=True)
+        user_message = req['queryResult']['queryText']
+        
+        # Log the received message
+        print(f"User message: {user_message}")
+        
+        # Call OpenAI API using the basic model (gpt-3.5-turbo)
         response = openai.ChatCompletion.create(
-            model="gpt-4",
+            model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": user_message}]
         )
-    except openai.error.OpenAIError as e:
-        print(f"Error using GPT-4: {e}")
-        try:
-            # Fallback to GPT-3.5-turbo
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": user_message}]
-            )
-        except openai.error.OpenAIError as e2:
-            print(f"Error using GPT-3.5: {e2}")
-            return jsonify({
-                "fulfillmentText": "Sorry, I am experiencing issues. Please try again later."
-            }), 500
-
-    # Extract the response from OpenAI
-    chatgpt_response = response['choices'][0]['message']['content']
-    print(f"Response from OpenAI: {chatgpt_response}")  # Log the response
-
-    # Send the response back to Dialogflow
-    return jsonify({"fulfillmentText": chatgpt_response})
+        
+        # Log OpenAI response details
+        print(f"OpenAI Response: {response}")
+        
+        # Extract ChatGPT response
+        chatgpt_response = response['choices'][0]['message']['content']
+        print(f"ChatGPT Response: {chatgpt_response}")  # Log the response
+        
+        # Return the response to Dialogflow
+        return jsonify({"fulfillmentText": chatgpt_response})
+    
+    except Exception as e:
+        # Print the error to logs and return a default message
+        print(f"Error: {str(e)}")
+        return jsonify({"fulfillmentText": "Sorry, I am experiencing issues. Please try again later."}), 500
 
 if __name__ == '__main__':
-    # Get the port from the environment or use a default (e.g., 5000)
-    port = int(os.environ.get('PORT', 10000))
+    app.run(debug=True)
 
-    # Run the app, setting the host to 0.0.0.0 for external visibility
-    app.run(host='0.0.0.0', port=port)
